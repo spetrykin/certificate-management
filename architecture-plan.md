@@ -89,3 +89,5 @@ A MySQL generated-column trick (e.g., a generated column that collapses to a con
 - Local-only via `docker-compose up` (app container + MySQL container).
 - Flyway migrations run automatically on app startup.
 - Rationale: within a one-week build window, deployment infrastructure is out of scope — the differentiating engineering content is the state machine, concurrency handling, and transactional audit design.
+
+Testcontainers is pinned to `mysql:8.4.11` (LTS), not `latest`. As of April 2026, MySQL 8.0 reached End of Life; MySQL 8.4 is the current LTS release in the 8.x line and matches the InnoDB/utf8mb4_0900_ai_ci dialect assumptions documented in V1__init_schema.sql. Pinning to a specific LTS version (rather than `latest`, which resolves to whatever Innovation release is current — e.g. 26.7 as of this writing, under MySQL's new calendar-versioning scheme) keeps the test environment reproducible across machines and over time.

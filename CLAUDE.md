@@ -1,0 +1,44 @@
+# CLAUDE.md
+
+## Roles
+
+- The user develops and performs all deployment/administrative actions manually.
+- The agent must never run deployment or destructive operations without explicit per-case permission.
+- An external architecture review process checks plans and code before implementation proceeds.
+
+## Language
+
+All project artifacts — documentation, code comments, commit messages, README — are written in English only, no exceptions.
+
+## Tech Stack (fixed)
+
+- Java 25
+- Spring Boot 3.x
+- MySQL/InnoDB
+- Flyway
+- Spring Data JPA
+- Bean Validation
+- springdoc-openapi
+- Testcontainers (JUnit 5 + MySQL module)
+- No Lombok.
+- No MapStruct.
+
+## Non-Negotiable Architecture Rules
+
+- State transitions occur only through `CertificateStateMachine.transition()`; no direct `setState()` exposure on `Certificate`.
+- The audit log write and the state transition happen inside the same `@Transactional` method — never separated.
+- Optimistic locking (`@Version`) on `Certificate` is the primary concurrency guard. `RenewalTask` uniqueness is enforced at the application level, not via a DB constraint — MySQL does not support partial unique indexes; do not port Postgres-flavored tutorial patterns.
+- API responses use DTOs; JPA entities are never exposed directly in controllers.
+- Deployment is local-only via Docker Compose (app + MySQL containers) — this is a deliberate scope decision for the one-week timeline; infrastructure deployment is out of scope, the project's focus is domain modeling and data-layer correctness.
+
+## One-Week CV-Readiness Timeline
+
+Explicit cut list:
+
+- Testcontainers limited to one test (proving the optimistic-lock race is actually caught).
+- `RenewalTask` retry/backoff logic deferred to end of week, only if time allows.
+- `Device` entity kept minimal (identifier field only, no metadata, no device-level endpoints).
+
+## Reporting Standard
+
+After each implementation phase, report back with verbatim code/config/migration files — not a summary of what was done.

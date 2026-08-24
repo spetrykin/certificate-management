@@ -5,6 +5,7 @@
 - The user develops and performs all deployment/administrative actions manually.
 - The agent must never run deployment or destructive operations without explicit per-case permission.
 - An external architecture review process checks plans and code before implementation proceeds.
+- Git commits are made only when explicitly instructed, turn by turn. The agent never decides on its own that a unit of work is "done enough" to commit — that decision belongs to the user and the architecture-review process, not the agent. This applies even when tests are passing and the change is otherwise complete. `git push` remains subject to the same rule and is additionally covered by the broader rule that all deployment/administrative actions are performed by the user manually.
 
 ## Language
 

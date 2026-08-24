@@ -83,10 +83,6 @@ public class Certificate {
         return deviceId;
     }
 
-    public void setDeviceId(Long deviceId) {
-        this.deviceId = deviceId;
-    }
-
     public String getSerialNumber() {
         return serialNumber;
     }

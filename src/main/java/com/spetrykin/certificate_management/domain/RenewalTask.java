@@ -2,6 +2,8 @@ package com.spetrykin.certificate_management.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -28,8 +30,9 @@ public class RenewalTask {
     @Column(name = "certificate_id", nullable = false)
     private Long certificateId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
-    private String status;
+    private RenewalStatus status;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -38,7 +41,7 @@ public class RenewalTask {
         // required by JPA
     }
 
-    public RenewalTask(Long certificateId, String status, LocalDateTime createdAt) {
+    public RenewalTask(Long certificateId, RenewalStatus status, LocalDateTime createdAt) {
         this.certificateId = certificateId;
         this.status = status;
         this.createdAt = createdAt;
@@ -52,16 +55,8 @@ public class RenewalTask {
         return certificateId;
     }
 
-    public void setCertificateId(Long certificateId) {
-        this.certificateId = certificateId;
-    }
-
-    public String getStatus() {
+    public RenewalStatus getStatus() {
         return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {

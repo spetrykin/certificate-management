@@ -15,7 +15,7 @@ All project artifacts — documentation, code comments, commit messages, README 
 ## Tech Stack (fixed)
 
 - Java 25
-- Spring Boot 3.x
+- Spring Boot 4.1.0
 - MySQL/InnoDB
 - Flyway
 - Spring Data JPA

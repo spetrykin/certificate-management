@@ -13,6 +13,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>certificate-management</name>
 	<description>Certificate lifecycle management service with an explicit state machine, optimistic-locking concurrency control, and transactional audit logging.</description>
+	<url>https://github.com/spetrykin/certificate-management</url>
 	<licenses>
 		<license>
 			<name>MIT License</name>
@@ -25,6 +26,12 @@
 			<email>serhii.petrykin@pm.me</email>
 		</developer>
 	</developers>
+	<scm>
+		<connection>scm:git:https://github.com/spetrykin/certificate-management.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com/spetrykin/certificate-management.git</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/spetrykin/certificate-management</url>
+	</scm>
 	<properties>
 		<java.version>25</java.version>
 	</properties>

@@ -2,11 +2,15 @@
 
 ## Current State
 
-Repo initialized via Spring Initializr, dependencies set, no implementation yet.
+Day 1 (domain layer) complete: entities, `CertState`, `CertificateStateMachine`, one unit test, Flyway baseline migration — all committed and pushed to origin/main. `RenewalStatus` enum added as its own enum (not a bare `String`) per explicit decision. Testcontainers pinned to `mysql:8.4.11` LTS, not `latest` — see architecture-plan.md Deployment section for rationale.
+
+CLAUDE.md governance rules added since original setup: commits only on explicit user instruction (never agent-initiated); no `.git` deletion or equivalent history-destroying operations under any framing, ever, by the agent; no committed secrets/credentials — datasource config will use env-var placeholders with a gitignored local file, per the plan already confirmed and recorded.
+
+Remote repo created and pushed: github.com/spetrykin/certificate-management, branch main, MIT licensed.
 
 ## Next Step
 
-Day 1 — Flyway baseline migration + entity classes + `CertState` enum + `CertificateStateMachine` + one unit test proving legal/illegal transitions.
+Day 2 — service layer: `CertificateService.transitionCertificate()` (transactional, orchestrates state-machine transition + audit log write + conditional `RenewalTask` creation on EXPIRING_SOON), `CertificateRepository` / `CertificateAuditLogRepository` / `RenewalTaskRepository` (Spring Data JPA, no custom queries yet). Not yet started.
 
 Full architecture decisions — see architecture-plan.md.
 

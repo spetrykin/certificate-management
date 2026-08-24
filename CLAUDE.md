@@ -6,6 +6,7 @@
 - The agent must never run deployment or destructive operations without explicit per-case permission.
 - An external architecture review process checks plans and code before implementation proceeds.
 - Git commits are made only when explicitly instructed, turn by turn. The agent never decides on its own that a unit of work is "done enough" to commit — that decision belongs to the user and the architecture-review process, not the agent. This applies even when tests are passing and the change is otherwise complete. `git push` remains subject to the same rule and is additionally covered by the broader rule that all deployment/administrative actions are performed by the user manually.
+- Deleting .git, or any equivalent history-destroying operation (force re-initializing the repository, `git gc --prune=now` on an already-broken repo, or any other action that discards commit history), is never the agent's decision to make — under any framing, including as an implementation detail of a differently-described task (e.g. "rebase," "reset and recommit," "clean up history"). This is the same category as `git push`: an irreversible action reserved for the user to execute personally. If a task genuinely appears to require it, the agent must stop and say so, and wait for the user to run it — never perform it silently as a means to an end.
 
 ## Language
 

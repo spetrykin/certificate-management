@@ -1,7 +1,5 @@
 /**
- * Scheduled jobs, including the expiry scanner that finds certificates due for
- * renewal.
- * <p>
- * Empty for now — see PROGRESS.md, Day 4.
+ * Scheduled jobs, including {@link com.spetrykin.certificate_management.scheduled.CertificateExpiryScanner},
+ * the expiry scanner that finds certificates due for renewal.
  */
 package com.spetrykin.certificate_management.scheduled;

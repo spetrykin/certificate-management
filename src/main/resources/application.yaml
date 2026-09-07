@@ -1,3 +1,11 @@
 spring:
   application:
     name: certificate-management
+
+certificate:
+  expiry-scan:
+    # How often CertificateExpiryScanner runs, in milliseconds.
+    interval-ms: 60000
+    # How many days before expiresAt an ACTIVE certificate is transitioned
+    # to EXPIRING_SOON.
+    threshold-days: 30

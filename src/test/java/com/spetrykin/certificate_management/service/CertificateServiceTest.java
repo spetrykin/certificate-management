@@ -19,11 +19,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -132,6 +136,24 @@ class CertificateServiceTest {
         assertThat(renewalTask.getCreatedAt()).isNotNull();
 
         verify(certificateAuditLogRepository, times(1)).save(any(CertificateAuditLog.class));
+    }
+
+    @Test
+    void transitionToExpiringSoonSkipsRenewalTaskCreationWhenOneIsAlreadyActive() {
+        Certificate certificate = certificateWithId(400L, CertState.RENEWAL_IN_PROGRESS);
+        when(certificateRepository.findById(400L)).thenReturn(Optional.of(certificate));
+
+        RenewalTask existingActiveTask = new RenewalTask(400L, RenewalStatus.IN_PROGRESS, LocalDateTime.now());
+        ReflectionTestUtils.setField(existingActiveTask, "id", 55L);
+        when(renewalTaskRepository.findByCertificateIdAndStatusIn(eq(400L), anyList()))
+                .thenReturn(List.of(existingActiveTask));
+
+        Certificate result = certificateService.transitionCertificate(
+                400L, CertState.EXPIRING_SOON, "scheduler", "renewal attempt failed");
+
+        assertThat(result.getState()).isEqualTo(CertState.EXPIRING_SOON);
+        verify(certificateAuditLogRepository, times(1)).save(any(CertificateAuditLog.class));
+        verify(renewalTaskRepository, never()).save(any());
     }
 
     @Test

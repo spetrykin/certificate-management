@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -80,8 +81,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * specific exception-propagation path under contention — which is expected to work correctly by
  * inspection (no try/catch anywhere in the method), but is not independently proven here.
  */
+// jwt.signing-key: Day 5 introduced a required (no-default) property that
+// JwtService needs to construct; this full Spring context now includes it,
+// so a throwaway, test-only value is supplied here — never the real
+// JWT_SIGNING_KEY environment variable / production mechanism.
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
+@TestPropertySource(properties = "jwt.signing-key=test-only-signing-key-for-concurrency-test-not-for-real-use-000")
 class CertificateServiceConcurrencyTest {
 
     @Autowired

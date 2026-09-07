@@ -2,6 +2,12 @@ spring:
   application:
     name: certificate-management
 
+# No default value: an unset JWT_SIGNING_KEY must fail startup loudly
+# rather than silently fall back to a guessable key, same as DB
+# credentials would. See application-local.yml.example for local setup.
+jwt:
+  signing-key: ${JWT_SIGNING_KEY}
+
 certificate:
   expiry-scan:
     # How often CertificateExpiryScanner runs, in milliseconds.

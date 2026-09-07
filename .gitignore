@@ -1,5 +1,9 @@
 HELP.md
 target/
+
+### Local environment overrides (see application-local.yml.example) ###
+application-local.yml
+application-local.yaml
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

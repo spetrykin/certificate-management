@@ -53,8 +53,38 @@
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-mysql</artifactId>
+		</dependency>
+
+		<!--
+			JWT support (Day 5). jjwt chosen: actively maintained, the de facto
+			standard Java JWT library, clean fluent builder/parser API (0.12+),
+			and a three-artifact split (api/impl/jackson) that keeps the
+			compile-time surface (jjwt-api) separate from the implementation and
+			JSON binding, which only need to be present at runtime.
+			Version 0.13.0 confirmed current on Maven Central as of this writing.
+		-->
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.13.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.13.0</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.13.0</version>
+			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>

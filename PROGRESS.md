@@ -2,49 +2,58 @@
 
 ## Current State
 
-Days 1 through 4 complete and committed, not yet pushed to origin/main.
+Days 1 through 5 complete and committed, not yet pushed to origin/main.
 
-Day 4: application-level RenewalTask uniqueness guard in
-CertificateService.transitionCertificate() — before creating a
-RenewalTask on transition to EXPIRING_SOON, checks whether an active
-(QUEUED or IN_PROGRESS) RenewalTask already exists for the certificate
-via RenewalTaskRepository.findByCertificateIdAndStatusIn(); if so,
-skips creation and logs at INFO, but still completes the state
-transition and audit log write. This is documented as defense-in-depth,
-not the primary concurrency guard — the primary guard remains
-optimistic locking (@Version) on Certificate, which already prevents
-two genuinely concurrent scans from both reaching RenewalTask creation
-in the same race; this check instead covers legitimate re-entry into
-EXPIRING_SOON via the RENEWAL_IN_PROGRESS failure path while an earlier
-RenewalTask is still active.
+Day 5: Spring Security added. JWT issuance/validation via JwtService
+(jjwt 0.13.0), signing key sourced exclusively from JWT_SIGNING_KEY
+(no default — missing value fails startup loudly, same pattern as DB
+credentials); application-local.yml.example documents the required
+key with a placeholder. JwtAuthenticationFilter reads the Bearer
+token, populates SecurityContext on valid tokens, and otherwise leaves
+the request unauthenticated for authorizeHttpRequests to decide
+downstream — deliberately not a Spring bean (constructed directly by
+SecurityConfig) to avoid Boot's servlet-filter auto-registration
+double-running it, a real bug caught and documented in the class's
+Javadoc. SecurityConfig: stateless JWT-only auth, CSRF disabled,
+/auth/login and springdoc paths permitted, /api/** convention
+established for Day 6 (GET → ADMIN or VIEWER, other methods → ADMIN
+only) with no placeholder routes. Two demo users (ADMIN, VIEWER roles,
+BCrypt-hashed passwords) via an in-memory UserDetailsService,
+documented as a deliberate one-week-scope shortcut, not a real user
+store. AuthController exposes POST /auth/login, returning a JWT on
+valid credentials, 401 otherwise.
 
-CertificateExpiryScanner (new, scheduled package): @Scheduled method,
-interval and threshold externalized as certificate.expiry-scan.interval-ms
-(default 60000) and certificate.expiry-scan.threshold-days (default 30)
-in application.yaml. Queries CertificateRepository.findByStateAndExpiresAtBefore
-for ACTIVE certificates past the threshold, calls
-transitionCertificate() for each with actor "scheduler"; each
-certificate's failure is caught and logged at WARN individually so one
-bad row doesn't abort the batch. @EnableScheduling confirmed present
-on CertificateManagementApplication (required for @Scheduled to have
-any effect at all — silently a no-op without it). Verified with a live
-Testcontainers-backed run (interval overridden to 2s) that the
-scheduler genuinely fires periodically on Spring's scheduling thread,
-not just via direct unit-test invocation.
+Two real bugs found and fixed during Day 5, not just typos: (1) Boot
+4.1's Jackson 3 migration coexists with jjwt-jackson's Jackson 2
+dependency — different consumers, no conflict, but caught a test
+failure from importing the wrong ObjectMapper. (2) An empty Bearer
+token ("Bearer " with nothing after it) throws a plain
+IllegalArgumentException from jjwt's own internal precondition check,
+before reaching JWT-format parsing — this does not extend JwtException,
+so it wasn't originally caught by the filter and would have surfaced
+as an HTTP 500 instead of leaving the request unauthenticated.
+Reproduced empirically, then fixed by broadening the filter's catch.
 
-Tests: CertificateServiceTest gained a case proving the uniqueness
-guard skips RenewalTask creation but still transitions/audits when an
-active task exists. New CertificateExpiryScannerTest proves the
-scanner calls transitionCertificate() once per due certificate and
-that one certificate's failure doesn't stop the rest of the batch from
-processing. 11/11 tests passing (2 domain + 5 service + 2 scheduled +
-1 concurrency + 1 context-load smoke test).
+Tests: JwtServiceTest (valid round-trip, expired token, wrong signing
+key). AuthControllerSecurityTest (@WebMvcTest + MockMvc, no database)
+covers login success/failure, unauthenticated access rejected,
+role-gated authorization (ADMIN token succeeds on a mutating request,
+VIEWER token gets 403, VIEWER token succeeds on GET), and both
+malformed and empty bearer tokens returning 401 rather than 500. Two
+pre-existing full-context tests updated with a throwaway test-only
+signing key via @TestPropertySource, required by the new no-default
+property — no logic changes. 23/23 tests passing (2 domain +
+3 JwtServiceTest + 9 AuthControllerSecurityTest + 5 service +
+2 scheduled + 1 concurrency + 1 context-load smoke test).
 
 ## Next Step
 
-Day 5 — Spring Security: JWT filter chain, ADMIN/VIEWER roles.
-Refresh token rotation and revocation remain explicitly out of scope
-(see architecture-plan.md, Security section). Not yet started.
+Day 6 — REST controllers for certificate endpoints under /api/**
+(matching Day 5's established authorization convention), DTOs (never
+expose JPA entities directly, per CLAUDE.md), ProblemDetail error
+handling (including 409 for IllegalStateTransitionException, per the
+reasoning fixed early in the project), manual curl verification. Not
+yet started.
 
 Full architecture decisions — see architecture-plan.md.
 

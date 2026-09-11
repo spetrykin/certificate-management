@@ -92,7 +92,7 @@ class AuthControllerSecurityTest {
 
     @Test
     void adminTokenIsAcceptedForAdminGatedMutatingRequest() throws Exception {
-        String token = loginAndExtractToken("admin", "admin-demo-pw");
+        String token = JwtTestSupport.login(mockMvc, objectMapper, "admin", "admin-demo-pw");
 
         mockMvc.perform(post("/api/dummy").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
@@ -100,7 +100,7 @@ class AuthControllerSecurityTest {
 
     @Test
     void viewerTokenIsRejectedForAdminGatedMutatingRequest() throws Exception {
-        String token = loginAndExtractToken("viewer", "viewer-demo-pw");
+        String token = JwtTestSupport.login(mockMvc, objectMapper, "viewer", "viewer-demo-pw");
 
         mockMvc.perform(post("/api/dummy").header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
@@ -108,18 +108,9 @@ class AuthControllerSecurityTest {
 
     @Test
     void viewerTokenIsAcceptedForGetRequest() throws Exception {
-        String token = loginAndExtractToken("viewer", "viewer-demo-pw");
+        String token = JwtTestSupport.login(mockMvc, objectMapper, "viewer", "viewer-demo-pw");
 
         mockMvc.perform(get("/api/dummy").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
-    }
-
-    private String loginAndExtractToken(String username, String password) throws Exception {
-        String body = mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new AuthController.LoginRequest(username, password))))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        return objectMapper.readValue(body, AuthController.LoginResponse.class).token();
     }
 }

@@ -4,11 +4,14 @@ import com.spetrykin.certificate_management.domain.CertState;
 import com.spetrykin.certificate_management.domain.Certificate;
 import com.spetrykin.certificate_management.domain.CertificateAuditLog;
 import com.spetrykin.certificate_management.domain.CertificateNotFoundException;
+import com.spetrykin.certificate_management.domain.Device;
+import com.spetrykin.certificate_management.domain.DeviceNotFoundException;
 import com.spetrykin.certificate_management.domain.IllegalStateTransitionException;
 import com.spetrykin.certificate_management.domain.RenewalStatus;
 import com.spetrykin.certificate_management.domain.RenewalTask;
 import com.spetrykin.certificate_management.repository.CertificateAuditLogRepository;
 import com.spetrykin.certificate_management.repository.CertificateRepository;
+import com.spetrykin.certificate_management.repository.DeviceRepository;
 import com.spetrykin.certificate_management.repository.RenewalTaskRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -71,12 +74,15 @@ class CertificateServiceTest {
     @Mock
     private RenewalTaskRepository renewalTaskRepository;
 
+    @Mock
+    private DeviceRepository deviceRepository;
+
     private CertificateService certificateService;
 
     @BeforeEach
     void setUp() {
         certificateService = new CertificateService(
-                certificateRepository, certificateAuditLogRepository, renewalTaskRepository);
+                certificateRepository, certificateAuditLogRepository, renewalTaskRepository, deviceRepository);
     }
 
     private static Certificate certificateWithId(Long id, CertState state) {
@@ -157,6 +163,32 @@ class CertificateServiceTest {
     }
 
     @Test
+    void createCertificatePersistsInPendingCsrState() {
+        Device device = new Device("device-01.example.com");
+        ReflectionTestUtils.setField(device, "id", 1L);
+        when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+        when(certificateRepository.save(any(Certificate.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Certificate result = certificateService.createCertificate(1L, "device-01.example.com");
+
+        assertThat(result.getDeviceId()).isEqualTo(1L);
+        assertThat(result.getCommonName()).isEqualTo("device-01.example.com");
+        assertThat(result.getState()).isEqualTo(CertState.PENDING_CSR);
+        verify(certificateAuditLogRepository, never()).save(any());
+    }
+
+    @Test
+    void createCertificateForNonexistentDeviceThrowsDeviceNotFoundException() {
+        when(deviceRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> certificateService.createCertificate(999L, "device-01.example.com"))
+                .isInstanceOf(DeviceNotFoundException.class);
+
+        verify(certificateRepository, never()).save(any());
+    }
+
+    @Test
     void missingCertificateThrowsCertificateNotFoundException() {
         when(certificateRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -166,5 +198,34 @@ class CertificateServiceTest {
 
         verify(certificateAuditLogRepository, never()).save(any());
         verify(renewalTaskRepository, never()).save(any());
+    }
+
+    @Test
+    void getCertificateByIdReturnsTheCertificateWhenFound() {
+        Certificate certificate = certificateWithId(42L, CertState.ACTIVE);
+        when(certificateRepository.findById(42L)).thenReturn(Optional.of(certificate));
+
+        Certificate result = certificateService.getCertificateById(42L);
+
+        assertThat(result).isSameAs(certificate);
+    }
+
+    @Test
+    void getCertificateByIdThrowsCertificateNotFoundExceptionWhenMissing() {
+        when(certificateRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> certificateService.getCertificateById(404L))
+                .isInstanceOf(CertificateNotFoundException.class);
+    }
+
+    @Test
+    void listCertificatesReturnsWhatTheRepositoryReturns() {
+        Certificate first = certificateWithId(1L, CertState.ACTIVE);
+        Certificate second = certificateWithId(2L, CertState.ISSUED);
+        when(certificateRepository.findAll()).thenReturn(List.of(first, second));
+
+        List<Certificate> result = certificateService.listCertificates();
+
+        assertThat(result).containsExactly(first, second);
     }
 }

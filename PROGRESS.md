@@ -2,58 +2,61 @@
 
 ## Current State
 
-Days 1 through 5 complete and committed, not yet pushed to origin/main.
+Days 1 through 6 complete and committed, not yet pushed to origin/main.
 
-Day 5: Spring Security added. JWT issuance/validation via JwtService
-(jjwt 0.13.0), signing key sourced exclusively from JWT_SIGNING_KEY
-(no default — missing value fails startup loudly, same pattern as DB
-credentials); application-local.yml.example documents the required
-key with a placeholder. JwtAuthenticationFilter reads the Bearer
-token, populates SecurityContext on valid tokens, and otherwise leaves
-the request unauthenticated for authorizeHttpRequests to decide
-downstream — deliberately not a Spring bean (constructed directly by
-SecurityConfig) to avoid Boot's servlet-filter auto-registration
-double-running it, a real bug caught and documented in the class's
-Javadoc. SecurityConfig: stateless JWT-only auth, CSRF disabled,
-/auth/login and springdoc paths permitted, /api/** convention
-established for Day 6 (GET → ADMIN or VIEWER, other methods → ADMIN
-only) with no placeholder routes. Two demo users (ADMIN, VIEWER roles,
-BCrypt-hashed passwords) via an in-memory UserDetailsService,
-documented as a deliberate one-week-scope shortcut, not a real user
-store. AuthController exposes POST /auth/login, returning a JWT on
-valid credentials, 401 otherwise.
+Day 6: REST API surface added under /api/**, matching Day 5's
+authorization convention (GET requires ADMIN or VIEWER, other methods
+require ADMIN). DTOs (dto package) mediate every request/response —
+JPA entities are never exposed directly, per CLAUDE.md; CertificateResponse
+deliberately omits `version` (a JPA/optimistic-locking implementation
+detail, not an API concern). Service layer gained creation methods
+(DeviceService.createDevice, CertificateService.createCertificate,
+validating the target device exists via DeviceNotFoundException) and
+read methods (getCertificateById, listCertificates, getDeviceById via
+DeviceService) — after an explicit decision, ALL controller access
+(mutating and read alike) goes through the service layer consistently;
+no repository is ever injected into a controller. ApiExceptionHandler
+(@RestControllerAdvice) maps CertificateNotFoundException/
+DeviceNotFoundException to 404, IllegalStateTransitionException to 409,
+ObjectOptimisticLockingFailureException to 409 (confirmed reachable
+from POST /api/certificates/{id}/transitions — two concurrent HTTP
+requests can race on Certificate.version exactly as Day 3's scheduler
+test proved), Bean Validation failures to 400 with field-level detail,
+and a generic RuntimeException fallback to 500 that never leaks
+internals into the response body.
 
-Two real bugs found and fixed during Day 5, not just typos: (1) Boot
-4.1's Jackson 3 migration coexists with jjwt-jackson's Jackson 2
-dependency — different consumers, no conflict, but caught a test
-failure from importing the wrong ObjectMapper. (2) An empty Bearer
-token ("Bearer " with nothing after it) throws a plain
-IllegalArgumentException from jjwt's own internal precondition check,
-before reaching JWT-format parsing — this does not extend JwtException,
-so it wasn't originally caught by the filter and would have surfaced
-as an HTTP 500 instead of leaving the request unauthenticated.
-Reproduced empirically, then fixed by broadening the filter's catch.
+One real production bug found and fixed during manual curl
+verification against the live app (not caught by any @WebMvcTest
+slice): an authenticated-but-wrong-role request correctly received a
+403 from Spring Security's AccessDeniedHandlerImpl, but the client
+actually received a 401. Root cause: Spring Boot's default error
+handling internally forwards the already-decided response to /error,
+which re-enters the same security filter chain as a fresh anonymous
+request; without an explicit permitAll for /error, that second,
+unrelated pass failed authentication and its 401 silently overwrote
+the correct 403. Fixed by permitting /error in SecurityConfig.
+MockMvc-based tests never execute this real container-level forward,
+so this class of bug is structurally invisible to the slice-test
+layer — exactly what the curl-against-a-live-server step exists to
+catch. Documented in SecurityConfig's Javadoc as a permanent warning
+against removing that permitAll entry.
 
-Tests: JwtServiceTest (valid round-trip, expired token, wrong signing
-key). AuthControllerSecurityTest (@WebMvcTest + MockMvc, no database)
-covers login success/failure, unauthenticated access rejected,
-role-gated authorization (ADMIN token succeeds on a mutating request,
-VIEWER token gets 403, VIEWER token succeeds on GET), and both
-malformed and empty bearer tokens returning 401 rather than 500. Two
-pre-existing full-context tests updated with a throwaway test-only
-signing key via @TestPropertySource, required by the new no-default
-property — no logic changes. 23/23 tests passing (2 domain +
-3 JwtServiceTest + 9 AuthControllerSecurityTest + 5 service +
-2 scheduled + 1 concurrency + 1 context-load smoke test).
+Manual curl verification performed against a live Testcontainers-backed
+run: full login → create device → create certificate → legal transition
+→ illegal transition (409 with ProblemDetail body) → unauthenticated
+request (401) → VIEWER read access (200) → VIEWER mutation attempt
+(403, confirmed fixed) sequence, all behaving as designed.
+
+44/44 tests passing (unit tests for all service methods including the
+new creation/read methods, @WebMvcTest slices for both controllers
+covering success/not-found/validation/authorization paths, plus the
+existing domain/concurrency/scheduled/security suites from Days 1-5,
+unchanged).
 
 ## Next Step
 
-Day 6 — REST controllers for certificate endpoints under /api/**
-(matching Day 5's established authorization convention), DTOs (never
-expose JPA entities directly, per CLAUDE.md), ProblemDetail error
-handling (including 409 for IllegalStateTransitionException, per the
-reasoning fixed early in the project), manual curl verification. Not
-yet started.
+Day 7 — README, architecture-plan.md/PROGRESS.md finalization, final
+push to GitHub, LinkedIn profile update. Not yet started.
 
 Full architecture decisions — see architecture-plan.md.
 

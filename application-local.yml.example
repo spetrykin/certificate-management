@@ -1,18 +1,44 @@
 # Local environment configuration example.
 #
 # Copy this file to application-local.yml, fill in real values, and
-# export/source it (or wire it into docker-compose's env_file) before
-# running the app locally. Do NOT commit the copy with real values —
-# application-local.yml is gitignored for exactly that reason.
+# export/source it before running the app locally without Docker, or
+# use it as-is as docker-compose's env_file (it's wired in for both
+# services in docker-compose.yml already). Do NOT commit the copy with
+# real values — application-local.yml is gitignored for exactly that
+# reason.
 #
 # This documents required environment variables in KEY=value form; it
 # is not parsed as Spring YAML config itself. application.yaml reads
 # these via ${VAR_NAME} placeholders resolved from the process
 # environment, with no defaults, so a missing variable fails app
 # startup loudly instead of silently falling back to something
-# guessable.
+# guessable. Testcontainers-backed tests never need any of this — see
+# application.yaml's datasource comment.
 
 # HMAC-SHA signing key for JWT issuance/validation (JwtService).
 # Must be at least 256 bits (32+ bytes) for HS256. Generate a real
 # random value for actual use — never reuse this placeholder.
 JWT_SIGNING_KEY=changeme-generate-a-real-256-bit-key
+
+# --- Database ---------------------------------------------------------
+# DB_URL assumes the app is running inside docker-compose's network,
+# where the MySQL service is reachable as host "mysql" (the service
+# name below). Running the app directly on the host against a
+# docker-compose-managed MySQL (whose port is published to localhost)
+# instead needs DB_URL=jdbc:mysql://localhost:3306/certificate_management.
+#
+# DB_USERNAME/DB_PASSWORD and MYSQL_USER/MYSQL_PASSWORD below must be
+# the same account, referenced under two different variable names
+# because the app (Spring) and the mysql image (its own entrypoint
+# script) use different naming conventions for the same credential.
+DB_URL=jdbc:mysql://mysql:3306/certificate_management
+DB_USERNAME=certificate_management
+DB_PASSWORD=changeme-generate-a-real-password
+
+# Consumed by the official mysql image's entrypoint on first startup
+# to create the database and a non-root application user. Keep
+# MYSQL_USER/MYSQL_PASSWORD in sync with DB_USERNAME/DB_PASSWORD above.
+MYSQL_ROOT_PASSWORD=changeme-generate-a-real-root-password
+MYSQL_DATABASE=certificate_management
+MYSQL_USER=certificate_management
+MYSQL_PASSWORD=changeme-generate-a-real-password

@@ -1,6 +1,17 @@
 spring:
   application:
     name: certificate-management
+  # No defaults: DB_URL/DB_USERNAME/DB_PASSWORD are environment-specific
+  # connection details, same rule as JWT_SIGNING_KEY below — a missing
+  # value fails startup loudly rather than silently falling back to
+  # something guessable. Testcontainers-backed tests never hit this:
+  # @ServiceConnection (TestcontainersConfiguration) supplies its own
+  # connection details bean and bypasses these properties entirely.
+  # See application-local.yml.example for local/docker-compose setup.
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
 # No default value: an unset JWT_SIGNING_KEY must fail startup loudly
 # rather than silently fall back to a guessable key, same as DB

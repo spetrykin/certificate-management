@@ -41,7 +41,7 @@ Explicit cut list:
 
 - Testcontainers limited to one test (proving the optimistic-lock race is actually caught).
 - `RenewalTask` retry/backoff logic deferred to end of week, only if time allows.
-- `Device` entity kept minimal (identifier field only, no metadata, no device-level endpoints).
+- `Device` entity kept minimal (identifier field only, no metadata beyond that).
 
 ## Reporting Standard
 

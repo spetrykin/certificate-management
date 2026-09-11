@@ -1,0 +1,44 @@
+services:
+  mysql:
+    # Pinned to 8.4.11 (LTS), matching the Testcontainers pin used all
+    # week — see architecture-plan.md, Deployment section, for the
+    # rationale (MySQL 8.0 EOL, 8.4 is the current 8.x LTS release,
+    # avoids `latest` resolving to a moving Innovation-release target).
+    image: mysql:8.4.11
+    restart: unless-stopped
+    env_file:
+      - application-local.yml
+    healthcheck:
+      # Pure liveness/reachability check: confirms mysqld is up and
+      # accepting connections before the app starts, satisfying
+      # depends_on: condition: service_healthy. Deliberately does NOT
+      # validate credentials — CMD (exec-form) never invokes a shell,
+      # so $VAR is never expanded inside the container regardless of
+      # $ vs $$ escaping, and mysqladmin ping's exit code reflects
+      # reachability only (confirmed empirically: a wrong password
+      # still exits 0). If the app's real DB_USERNAME/DB_PASSWORD are
+      # wrong, that surfaces loudly and immediately at app startup via
+      # its own datasource connection failure — a better place to
+      # catch it than here.
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    env_file:
+      - application-local.yml
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql-data:

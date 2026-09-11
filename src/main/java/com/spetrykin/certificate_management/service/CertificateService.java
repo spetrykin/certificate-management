@@ -5,10 +5,12 @@ import com.spetrykin.certificate_management.domain.Certificate;
 import com.spetrykin.certificate_management.domain.CertificateAuditLog;
 import com.spetrykin.certificate_management.domain.CertificateNotFoundException;
 import com.spetrykin.certificate_management.domain.CertificateStateMachine;
+import com.spetrykin.certificate_management.domain.DeviceNotFoundException;
 import com.spetrykin.certificate_management.domain.RenewalStatus;
 import com.spetrykin.certificate_management.domain.RenewalTask;
 import com.spetrykin.certificate_management.repository.CertificateAuditLogRepository;
 import com.spetrykin.certificate_management.repository.CertificateRepository;
+import com.spetrykin.certificate_management.repository.DeviceRepository;
 import com.spetrykin.certificate_management.repository.RenewalTaskRepository;
 
 import org.slf4j.Logger;
@@ -41,15 +43,67 @@ public class CertificateService {
     private final CertificateRepository certificateRepository;
     private final CertificateAuditLogRepository certificateAuditLogRepository;
     private final RenewalTaskRepository renewalTaskRepository;
+    private final DeviceRepository deviceRepository;
 
     public CertificateService(
             CertificateRepository certificateRepository,
             CertificateAuditLogRepository certificateAuditLogRepository,
-            RenewalTaskRepository renewalTaskRepository
+            RenewalTaskRepository renewalTaskRepository,
+            DeviceRepository deviceRepository
     ) {
         this.certificateRepository = certificateRepository;
         this.certificateAuditLogRepository = certificateAuditLogRepository;
         this.renewalTaskRepository = renewalTaskRepository;
+        this.deviceRepository = deviceRepository;
+    }
+
+    /**
+     * Creates a new {@link Certificate} for {@code deviceId} in {@link
+     * CertState#PENDING_CSR} — the certificate's initial state, so this is
+     * deliberately NOT routed through {@link CertificateStateMachine}: there
+     * is no prior state to transition from, and the state machine models
+     * transitions between existing states, not object creation.
+     * <p>
+     * {@code @Transactional} here even though this is a single logical
+     * step (a read to check the device exists, then a write), not
+     * multi-step orchestration like {@link #transitionCertificate}: the
+     * device foreign key already backstops referential integrity at the
+     * DB level (see V1__init_schema.sql's {@code fk_certificate_device}),
+     * so this annotation isn't covering a real correctness gap today.
+     * It's here for consistency with this class's other mutating method
+     * and so this "check, then write" pair reads as one explicit unit of
+     * work rather than two independently-committed repository calls —
+     * cheap to add, and the natural boundary if this method ever grows
+     * (e.g. a future serial-number allocation step) past a single write.
+     *
+     * @throws DeviceNotFoundException if no device exists for {@code deviceId}
+     */
+    @Transactional
+    public Certificate createCertificate(Long deviceId, String commonName) {
+        deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new DeviceNotFoundException(deviceId));
+
+        Certificate certificate = new Certificate(deviceId, commonName, CertState.PENDING_CSR);
+        return certificateRepository.save(certificate);
+    }
+
+    /**
+     * No {@code @Transactional}: a single read, no orchestration —
+     * same reasoning as {@link #listCertificates()}.
+     *
+     * @throws CertificateNotFoundException if no certificate exists for {@code id}
+     */
+    public Certificate getCertificateById(Long id) {
+        return certificateRepository.findById(id)
+                .orElseThrow(() -> new CertificateNotFoundException(id));
+    }
+
+    /**
+     * No {@code @Transactional}: a single read, no orchestration — same
+     * reasoning as {@link #getCertificateById(Long)}.
+     */
+    public List<Certificate> listCertificates() {
+        return certificateRepository.findAll();
     }
 
     /**

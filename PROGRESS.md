@@ -10,7 +10,7 @@ concurrency guard with RenewalTask uniqueness as documented
 defense-in-depth, transactional audit logging, the /error security bug
 found via live verification, the DTO boundary), how to run it (Docker
 Compose or the Testcontainers dev-run path), API docs location,
-status, and license. architecture-plan.md brought current: Security
+and status. architecture-plan.md brought current: Security
 section now describes the actual SecurityConfig/JwtAuthenticationFilter
 shape and the /error fix's full root cause, not just the abstract
 JWT/roles concept from earlier in the week; a new API section

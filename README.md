@@ -26,7 +26,14 @@ docker compose up --build
 
 This builds the app image (multi-stage: `eclipse-temurin:25-jdk` to compile, `eclipse-temurin:25-jre` to run), starts MySQL, waits for it to be healthy, then starts the app. Flyway migrates the schema automatically on startup. The app listens on `http://localhost:8080`.
 
-**Without Docker (dev-run against Testcontainers):** run `TestCertificateManagementApplication`'s `main` method from your IDE, or `./mvnw spring-boot:test-run`. This spins up a throwaway MySQL container via Testcontainers and wires it in automatically — no `application-local.yml` needed for this path.
+**Without Docker (dev-run against Testcontainers):**
+
+```bash
+export JWT_SIGNING_KEY=some-throwaway-256-bit-dev-key-not-for-real-use-00000000
+./mvnw spring-boot:test-run
+```
+
+(or run `TestCertificateManagementApplication`'s `main` method from your IDE with the same env var set). This spins up a throwaway MySQL container via Testcontainers and wires it in automatically — no DB credentials or `application-local.yml` needed for this path. `JWT_SIGNING_KEY` is the one exception: it has no Testcontainers equivalent to bypass it, so it still needs to be set, same as the Docker Compose path.
 
 ## API Docs
 
@@ -36,10 +43,12 @@ Once running, interactive API docs (Swagger UI) are at:
 http://localhost:8080/swagger-ui.html
 ```
 
+A terminal walkthrough (login, legal/illegal transitions, validation failure, VIEWER read/write, 401, concurrent transition race) is in [`./demo/demo.sh`](./demo/demo.sh).
+
 ## Status
 
 All 7 days of the planned build are complete. This was built in a one-week, CV-readiness scope — see `architecture-plan.md` for full design rationale, including the documented, deliberate cuts: `RenewalTask` retry/backoff logic, a minimal `Device` entity, and no refresh token rotation/revocation.
 
-## License
+## Built with Claude Code
 
-MIT
+This project was developed over one week with Claude Code as the implementing agent, under human architecture, review, and decision-making. The author was the architect and reviewer; the agent handled implementation; all deployments, commits, and pushes were performed by the author.

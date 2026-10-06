@@ -14,12 +14,6 @@
 	<name>certificate-management</name>
 	<description>Certificate lifecycle management service with an explicit state machine, optimistic-locking concurrency control, and transactional audit logging.</description>
 	<url>https://github.com/spetrykin/certificate-management</url>
-	<licenses>
-		<license>
-			<name>MIT License</name>
-			<url>https://opensource.org/licenses/MIT</url>
-		</license>
-	</licenses>
 	<developers>
 		<developer>
 			<name>Serhii Petrykin</name>

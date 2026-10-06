@@ -41,9 +41,10 @@ import static org.mockito.Mockito.when;
  * deliberate choice over a {@code @DataJpaTest} slice or a Testcontainers
  * integration test:
  * <p>
- * - CLAUDE.md scopes Testcontainers to exactly one test for the whole
- * one-week build, already earmarked (per architecture-plan.md/PROGRESS.md,
- * Day 3) for the optimistic-lock race test. Spending that budget here on
+ * - CLAUDE.md keeps Testcontainers-backed tests minimal for the whole
+ * one-week build: one behavioral test (earmarked per architecture-plan.md/
+ * PROGRESS.md, Day 3, for the optimistic-lock race) plus the context-load
+ * smoke test. Spending that budget here on
  * transition/audit-log/RenewalTask wiring — none of which depends on real
  * MySQL behavior — would leave nothing for the test it was reserved for.
  * <p>

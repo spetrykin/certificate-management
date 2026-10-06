@@ -29,8 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * The week's one and only Testcontainers-backed test (see CLAUDE.md, PROGRESS.md Day 3),
- * proving that the {@code @Version} optimistic lock on {@link Certificate} is what actually
+ * The week's one behavioral Testcontainers-backed test (see CLAUDE.md, PROGRESS.md Day 3;
+ * the only other one is the context-load smoke test), proving that the
+ * {@code @Version} optimistic lock on {@link Certificate} is what actually
  * catches the race described in architecture-plan.md's Concurrency section: two concurrent
  * scheduled-job scans finding the same certificate in {@code EXPIRING_SOON} and both attempting
  * to transition it to {@code RENEWAL_IN_PROGRESS}.

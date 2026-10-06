@@ -2,7 +2,7 @@
 
 ## Current State
 
-All 7 days complete and committed, not yet pushed to origin/main.
+All 7 days complete and committed.
 
 Day 7: README.md added — project description, tech stack, notable
 engineering decisions (state machine, optimistic locking as primary
@@ -45,13 +45,17 @@ state.
 44/44 tests passing throughout Day 7 (no test changes this day — pure
 documentation, configuration, and deployment-infrastructure work).
 
+Post-Day-7 work: manual verification with the demo script surfaced a
+real InnoDB deadlock under two simultaneous transition requests; fixed by
+widening ApiExceptionHandler to ConcurrencyFailureException, so
+optimistic-lock conflicts and deadlocks both map to 409. Added an
+HTTP-layer handler test (ApiExceptionHandlerConcurrencyTest), verified
+with a mutation check that it fails against the old narrower handler,
+and a terminal demo script (demo/demo.sh). 47/47 tests now passing.
+
 ## Next Step
 
-None — all 7 days of the planned build are complete. Remaining work
-outside this file's scope: push this final commit and Day 6's/Day 7's
-prior commits to origin/main, then update the LinkedIn profile and
-About section per the earlier positioning discussion, linking this
-repo.
+None.
 
 Full architecture decisions — see architecture-plan.md.
 
@@ -63,4 +67,4 @@ Full architecture decisions — see architecture-plan.md.
 - Day 4: Scheduled expiry scanner + application-level RenewalTask uniqueness check. — Done.
 - Day 5: Spring Security — JWT filter chain, ADMIN/VIEWER roles. — Done.
 - Day 6: REST controllers + DTOs + ProblemDetail error handling + manual curl verification. — Done.
-- Day 7: README, architecture-plan.md/PROGRESS.md finalization, push to GitHub, LinkedIn update. — Done (push is the user's final manual step).
+- Day 7: README, architecture-plan.md/PROGRESS.md finalization, push to GitHub. — Done.

@@ -18,7 +18,7 @@ Four entities: `Certificate`, `Device`, `RenewalTask`, `CertificateAuditLog`.
 ### Device
 
 - `id` (PK)
-- `identifier` (kept minimal per the one-week cut list — no metadata, no device-level endpoints)
+- `identifier` (kept minimal per the one-week cut list — no metadata beyond the identifier)
 
 ### RenewalTask
 
@@ -42,14 +42,14 @@ Four entities: `Certificate`, `Device`, `RenewalTask`, `CertificateAuditLog`.
 
 ### ALLOWED_TRANSITIONS
 
-| From                    | To                                          |
-|-------------------------|----------------------------------------------|
-| PENDING_CSR              | ISSUED                                       |
-| ISSUED                   | ACTIVE                                       |
-| ACTIVE                   | EXPIRING_SOON                                |
-| EXPIRING_SOON             | RENEWAL_IN_PROGRESS                          |
-| RENEWAL_IN_PROGRESS       | RENEWED, EXPIRED, REVOKED                    |
-| RENEWAL_IN_PROGRESS       | EXPIRING_SOON (failure path)                 |
+| From                | To                                                        |
+|---------------------|-----------------------------------------------------------|
+| PENDING_CSR         | ISSUED                                                    |
+| ISSUED              | ACTIVE                                                    |
+| ACTIVE              | EXPIRING_SOON, REVOKED                                    |
+| EXPIRING_SOON       | RENEWAL_IN_PROGRESS, EXPIRED, REVOKED                     |
+| RENEWAL_IN_PROGRESS | RENEWED, EXPIRING_SOON (failure path), REVOKED            |
+| RENEWED             | EXPIRING_SOON, REVOKED                                    |
 
 ### Terminal States
 
@@ -106,7 +106,7 @@ All endpoints below are mounted under `/api/**` except `/auth/login`. Controller
 | GET    | `/api/certificates`                | `ADMIN`/`VIEWER` | —                    | Unfiltered `findAll()` — no pagination, out of scope for this timeline. |
 | POST   | `/api/certificates/{id}/transitions` | `ADMIN`    | `TransitionRequest`     | Drives `CertificateService.transitionCertificate`; 409 on an illegal transition or a concurrent-modification conflict. |
 
-Errors are RFC 7807 `ProblemDetail` responses via `ApiExceptionHandler` (`@RestControllerAdvice`): `CertificateNotFoundException`/`DeviceNotFoundException` → 404; `IllegalStateTransitionException` → 409; `ObjectOptimisticLockingFailureException` → 409 as well — confirmed reachable from `POST /api/certificates/{id}/transitions` (two concurrent requests transitioning the same certificate race on `Certificate.version` exactly as the Concurrency section's scheduler race does, just driven by HTTP requests instead of scan invocations); Bean Validation failures on `@RequestBody` → 400 with field-level detail; any other unhandled `RuntimeException` → 500, logged server-side, with a generic detail message that never leaks the exception's own message into the response body. Errors originating in the security filter chain itself (401/403, e.g. missing or insufficient-role tokens) are not routed through this handler — they're decided before the request ever reaches a controller — and come back as Spring Security's own default bodies, not `ProblemDetail`.
+Errors are RFC 7807 `ProblemDetail` responses via `ApiExceptionHandler` (`@RestControllerAdvice`): `CertificateNotFoundException`/`DeviceNotFoundException` → 404; `IllegalStateTransitionException` → 409; `ConcurrencyFailureException` → 409 as well (covers optimistic-lock conflicts, i.e. `ObjectOptimisticLockingFailureException`, and InnoDB deadlocks, i.e. `CannotAcquireLockException`; see the Concurrency section) — confirmed reachable from `POST /api/certificates/{id}/transitions` (two concurrent requests transitioning the same certificate race on `Certificate.version` exactly as the Concurrency section's scheduler race does, just driven by HTTP requests instead of scan invocations); Bean Validation failures on `@RequestBody` → 400 with field-level detail; any other unhandled `RuntimeException` → 500, logged server-side, with a generic detail message that never leaks the exception's own message into the response body. Errors originating in the security filter chain itself (401/403, e.g. missing or insufficient-role tokens) are not routed through this handler — they're decided before the request ever reaches a controller — and come back as Spring Security's own default bodies, not `ProblemDetail`.
 
 Interactive API docs: springdoc-openapi serves Swagger UI at `/swagger-ui.html` once the app is running.
 

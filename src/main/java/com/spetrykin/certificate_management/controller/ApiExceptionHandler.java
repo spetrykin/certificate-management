@@ -6,9 +6,9 @@ import com.spetrykin.certificate_management.domain.IllegalStateTransitionExcepti
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,21 +43,34 @@ public class ApiExceptionHandler {
 
     /**
      * Reachable from POST /api/certificates/{id}/transitions: two concurrent
-     * requests transitioning the same certificate race on
-     * {@code Certificate.version} exactly as the two scheduled-scan
-     * invocations do in Day 3's CertificateServiceConcurrencyTest (see
-     * architecture-plan.md, Concurrency section) — the difference here is
-     * the race is driven by two HTTP requests instead of two scan
-     * invocations, but it's the same underlying mechanism and the same
-     * exception. The losing request's {@code transitionCertificate()} call
-     * throws this, uncaught, straight out of the service method to here.
-     * Treated as a 409, same family as {@link IllegalStateTransitionException}
-     * — both mean "the certificate's state moved out from under this
-     * request," just from a different cause (a version conflict rather
-     * than an invalid target state).
+     * requests transitioning the same certificate can collide in two
+     * different ways, both caught here because both are, at the root,
+     * {@link ConcurrencyFailureException}:
+     * <ul>
+     *   <li>{@code ObjectOptimisticLockingFailureException} — the classic
+     *   case, the same mechanism as the two scheduled-scan invocations in
+     *   Day 3's CertificateServiceConcurrencyTest (see architecture-plan.md,
+     *   Concurrency section): the losing request's {@code UPDATE ... WHERE
+     *   id=? AND version=?} matches zero rows because the version it read
+     *   is stale.</li>
+     *   <li>{@code CannotAcquireLockException} — a genuine MySQL/InnoDB
+     *   deadlock, found empirically (not by the automated test suite —
+     *   manual demo-script verification against a running app, same
+     *   category of discovery as Day 6's {@code /error} bug) when two
+     *   truly-simultaneous requests raced their {@code UPDATE certificate}
+     *   and {@code INSERT certificate_audit_log} pairs against the same
+     *   certificate row closely enough to deadlock at the row-lock level,
+     *   distinct from a stale-version read. Before this handler existed,
+     *   that exception fell through to {@link #handleUnexpected} as an
+     *   opaque 500.</li>
+     * </ul>
+     * Both are treated as a 409, same family as {@link IllegalStateTransitionException}
+     * — all three mean "the certificate's state moved out from under this
+     * request (or the write couldn't be safely ordered against a
+     * concurrent one)," just from different causes.
      */
-    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-    public ProblemDetail handleOptimisticLockingFailure(ObjectOptimisticLockingFailureException e) {
+    @ExceptionHandler(ConcurrencyFailureException.class)
+    public ProblemDetail handleConcurrencyFailure(ConcurrencyFailureException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
                 "The certificate was modified concurrently by another request; reload and retry.");
     }
